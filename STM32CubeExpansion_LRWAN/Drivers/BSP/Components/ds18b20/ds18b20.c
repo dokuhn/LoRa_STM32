@@ -50,6 +50,10 @@
 #include "delay.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
+/* Private variables ---------------------------------------------------------*/
+extern bool debug_flags;
+
 void DS18B20_delay(uint16_t time)
 {
         uint8_t i;
@@ -551,12 +555,24 @@ float DS18B20_GetTemp_SkipRom (uint8_t num)
         s_tem = tpmsb<<8;
         s_tem = s_tem | tplsb;
         
-        if( s_tem < 0 )                
-                f_tem = (~s_tem+1) * -0.0625;        
+        if( s_tem < 0 )
+#ifdef DS1820          
+                f_tem = (~s_tem+1) * -0.5;
+#else        
+                f_tem = (~s_tem+1) * -0.0625;
+#endif
         else
+#ifdef DS1820
+                f_tem = s_tem * 0.5;
+#else
                 f_tem = s_tem * 0.0625;
-        
-//				PPRINTF("temp is %f\r\n",f_tem);
+#endif        
+         if(debug_flags==1)
+         {		
+            PPRINTF("\r\n");		
+            PPRINTF("temp is %f\r\n",f_tem);
+         }
+  
         return f_tem;         
 }
 /*******END OF FILE********/
