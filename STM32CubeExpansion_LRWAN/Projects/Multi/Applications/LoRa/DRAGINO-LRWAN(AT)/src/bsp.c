@@ -67,6 +67,7 @@
 #include "iwdg.h"
 #include "bh1750.h"
 #include "tfsensor.h"
+#include "SCD30.h"
 #endif
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -94,6 +95,11 @@ extern I2C_HandleTypeDef I2cHandle2;
 extern I2C_HandleTypeDef I2cHandle3;
 tfsensor_reading_t reading_t;
 #endif
+
+#ifdef USE_SCD30
+extern I2C_HandleTypeDef I2cHandle4;
+#endif
+
 
 extern void Read_Config(void);
 extern uint8_t mode;
@@ -131,7 +137,7 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 	sensor_data->in1=HAL_GPIO_ReadPin(GPIO_INPUT_PORT,GPIO_INPUT_PIN1);
 
 	sensor_data->temp1=DS18B20_GetTemp_SkipRom(1);
-	
+    
 	 if((mode==1)||(mode==3))
 	 {		
 		#ifdef USE_SHT
@@ -162,7 +168,7 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 			I2C_IoInit();
 			sensor_data->illuminance=bh1750_read();
 			I2C_DoInit();					
-		}		
+		}    
 		#endif
 		}
 	 
@@ -197,8 +203,16 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 
    else if(mode==4)
    {
-		sensor_data->temp2=DS18B20_GetTemp_SkipRom(2);
-		sensor_data->temp3=DS18B20_GetTemp_SkipRom(3);	 
+		// sor_data->temp2=DS18B20_GetTemp_SkipRom(2);
+		// sensor_data->temp3=DS18B20_GetTemp_SkipRom(3);
+
+     
+    	SCD30_readMeasurement();
+     
+    	sensor_data->temp_scd30=SCD30_getTemperatur();
+    	sensor_data->co2_scd30=SCD30_getCO2();
+    	sensor_data->hum_scd30=SCD30_getHumidity();
+     
 	 }	
 	 
 	 else if(mode==5)
@@ -208,8 +222,8 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 		Get_Weight();		
 		WEIGHT_SCK_DeInit();
 		WEIGHT_DOUT_DeInit();		 
-	 }		 
-	 
+	 }
+   
 	  if(mode==3)
 	 {	
 	   AD_code2=HW_AdcReadChannel( ADC_Channel_IN1 );  //PA1
@@ -391,6 +405,17 @@ void  BSP_sensor_Init( void  )
 		 }
 	  }
 	}
+  else if(mode==4)
+  {
+    #ifdef USE_SCD30
+    
+    SCD30_init();
+    
+    SCD30_startMeasurement(0);
+    PPRINTF("  Use Sensor is SCD30\n\r");
+    
+    #endif    
+  }
 	else if(mode==5)
 	{
 		WEIGHT_SCK_Init();
@@ -400,7 +425,7 @@ void  BSP_sensor_Init( void  )
 		Get_Maopi();		
 		PPRINTF("  Use Sensor is HX711\n\r");			
 	}
-	
+
 	switch(inmode)
 	{
 		case 0:

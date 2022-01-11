@@ -93,6 +93,12 @@ typedef struct{
   int distance_mm;
 	
 	int distance_signal_strengh;
+  
+  float temp_scd30; // SCD30
+  
+  float co2_scd30; // SCD30
+  
+  float hum_scd30; // SCD30
 	
   /**more may be added*/
 } sensor_t;

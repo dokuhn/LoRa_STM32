@@ -559,6 +559,29 @@ static void Send( void )
 		AppData.Buff[i++]=(int)(sensor_data.temp1*10)>>8;     //DS18B20
 		AppData.Buff[i++]=(int)(sensor_data.temp1*10);
 	
+    AppData.Buff[i++]=(int)(sensor_data.temp_scd30*10)>>8;       //SCD30 Temperatur
+    AppData.Buff[i++]=(int)(sensor_data.temp_scd30*10);
+    
+    if(exti_flag==1)
+		{
+			AppData.Buff[i++]=(switch_status<<7)|(sensor_data.in1<<1)|0x01|0x0C;
+			exti_flag=0;
+		}
+		else
+		{
+			switch_status=HAL_GPIO_ReadPin(GPIO_EXTI_PORT,GPIO_EXTI_PIN);				
+			AppData.Buff[i++]=(switch_status<<7)|(sensor_data.in1<<1)|0x0C;
+		}
+     
+    AppData.Buff[i++]=(int)(sensor_data.co2_scd30)>>8;           //SCD30 CO2
+    AppData.Buff[i++]=(int)(sensor_data.co2_scd30);
+    
+    AppData.Buff[i++]=(int)(sensor_data.hum_scd30*10)>>8;           //SCD30 CO2
+    AppData.Buff[i++]=(int)(sensor_data.hum_scd30*10);
+     
+    
+    /*
+    
 		AppData.Buff[i++] =(int)(sensor_data.oil)>>8;          //oil float
 		AppData.Buff[i++] =(int)sensor_data.oil;
 
@@ -577,6 +600,8 @@ static void Send( void )
 		AppData.Buff[i++]=(int)(sensor_data.temp2*10);
 		AppData.Buff[i++]=(int)(sensor_data.temp3*10)>>8;     //DS18B20
 		AppData.Buff[i++]=(int)(sensor_data.temp3*10);
+    
+    */
 	
 	}	
 	

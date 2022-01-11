@@ -527,7 +527,7 @@ void fdr_config(void)
 			LoRaMacMibSetRequestConfirm( &mibReq );
 	#endif	
 				
-	mode=1;			
+	mode=4;			
 	inmode=2;					
 	APP_TX_DUTYCYCLE=300000;
 	REJOIN_TX_DUTYCYCLE=20;//min	
