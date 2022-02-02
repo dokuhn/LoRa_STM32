@@ -73,6 +73,8 @@ SCD30ErrCodeType SCD30_startMeasurement(uint16_t baro);
 
 SCD30ErrCodeType SDC30_stopMeasurement(void);
 
+SCD30ErrCodeType SCD30_setMeasurementInterval(uint16_t time_sec);
+
 SCD30ErrCodeType SCD30_setTemperatureOffs(uint16_t temp);
 
 SCD30ErrCodeType SCD30_readMeasurement(void);

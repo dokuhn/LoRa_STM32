@@ -411,7 +411,12 @@ void  BSP_sensor_Init( void  )
     
     SCD30_init();
     
+    SCD30_setMeasurementInterval(150);
+    
     SCD30_startMeasurement(0);
+    
+
+    
     PPRINTF("  Use Sensor is SCD30\n\r");
     
     #endif    

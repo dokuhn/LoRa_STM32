@@ -322,6 +322,35 @@ SCD30ErrCodeType SCD30_readMeasurement(void)
 }
 
 
+SCD30ErrCodeType SCD30_setMeasurementInterval(uint16_t time_sec)
+{
+
+    uint8_t i2cBuffer[64];
+    HAL_StatusTypeDef respErrValue;
+  
+    if (time_sec < 2) time_sec = 2;
+    if (time_sec > 1800) time_sec = 1800;
+
+    i2cBuffer[0] = (0xFFu & (CMD_SET_MEASUREMENT_INTERVAL >> 8));
+    i2cBuffer[1] = (0xFFu & CMD_SET_MEASUREMENT_INTERVAL);  
+    
+    i2cBuffer[2] = (0xFFu & (time_sec >> 8));
+    i2cBuffer[3] = (0xFFu & time_sec);
+    i2cBuffer[4] = SCD30_calcCrc2b(time_sec);
+
+    respErrValue = HAL_I2C_Master_Transmit(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, 5, 150);
+
+    if(respErrValue == HAL_ERROR){
+      return SCDnoAckERROR;
+    }else if(respErrValue == HAL_TIMEOUT){
+      return SCDtimeoutERROR;
+    }else{
+      return SCDnoERROR;
+    }
+
+}
+
+
 SCD30ErrCodeType SCD30_setTemperatureOffs(uint16_t temp)
 {
     uint8_t i2cBuffer[64];
