@@ -631,6 +631,17 @@ static const struct ATCommand_s ATCommand[] =
     .set = at_weight_GapValue_set,
     .run = at_return_error,
 	},
+    
+  {
+    .string = AT_SCD30_MI,
+    .size_string = sizeof(AT_SCD30_MI) - 1,
+#ifndef NO_HELP
+    .help_string = "AT"AT_SCD30_MI ": Get or set the interval in seconds used by the SCD30 sensor to measure in continous measurement mode\r\n",
+#endif
+    .get = at_SCD30_measurementInterval_get,
+    .set = at_SCD30_measurementInterval_set,
+    .run = at_return_error,
+  },
 
 		{
 	  .string = AT_5VT,

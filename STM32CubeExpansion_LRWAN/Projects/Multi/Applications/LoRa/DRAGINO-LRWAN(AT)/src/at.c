@@ -63,6 +63,7 @@
 #include "delay.h"
 #include "gpio_exti.h"
 #include "weight.h"
+#include "SCD30.h"
 
 bool debug_flags=0;
 uint8_t symbtime1_value=0;  //RX1windowtimeout 
@@ -95,6 +96,8 @@ extern TimerEvent_t RxWindowTimer1;
 extern TimerEvent_t RxWindowTimer2;
 extern TimerEvent_t TxTimer;
 extern TimerEvent_t ReJoinTimer;
+
+
 /* Private macro -------------------------------------------------------------*/
 /**
  * @brief Macro to return when an error occurs
@@ -1600,6 +1603,40 @@ ATEerror_t at_weight_GapValue_get(const char *param)
 	
   return AT_OK;		
 }
+
+
+ATEerror_t at_SCD30_measurementInterval_set(const char *param)
+{ 
+	uint16_t measurementInterval;
+	
+	if (tiny_sscanf(param, "%lu", &measurementInterval) != 1)
+  {
+    return AT_PARAM_ERROR;
+  }
+	
+	if(measurementInterval<2)
+	{
+		PRINTF("SCD30 measurement interval setting must be more than 2S\n\r");
+		SCD30_MEASUREMENT_INTERVAL=2;
+		return AT_PARAM_ERROR;
+	}
+	
+	SCD30_MEASUREMENT_INTERVAL=measurementInterval;
+  
+  if( SCD30_setMeasurementInterval(SCD30_MEASUREMENT_INTERVAL) != SCDnoERROR){
+    PRINTF("Could not set the measurement interval on SCD30 sensor\n\r");    
+    return AT_ERROR;
+  } 
+	
+	return AT_OK;
+}
+
+ATEerror_t at_SCD30_measurementInterval_get(const char *param)
+{ 
+	print_d(SCD30_MEASUREMENT_INTERVAL);
+	return AT_OK;
+}
+
 
 ATEerror_t at_5Vtime_set(const char *param)
 {

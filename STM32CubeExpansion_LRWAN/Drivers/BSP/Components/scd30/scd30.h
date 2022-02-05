@@ -109,7 +109,9 @@ float SCD30_getHumidity(void);
 #define SCD30_CRC_INIT                          0xff
             
 #define SCD30_SN_SIZE                           33      //size of the s/n ascii string + CRC values
- 
+
+
+extern uint16_t SCD30_MEASUREMENT_INTERVAL;
 
 /* USER CODE END Private defines */
 

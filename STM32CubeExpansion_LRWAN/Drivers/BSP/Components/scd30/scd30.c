@@ -44,6 +44,8 @@ extern bool debug_flags;
 #define I2C_TIMING    0x10A13E56 /* 100 kHz with analog Filter ON, Rise Time 400ns, Fall Time 100ns */ 
 //#define I2C_TIMING      0x00B1112E /* 400 kHz with analog Filter ON, Rise Time 250ns, Fall Time 100ns */
 
+uint16_t SCD30_MEASUREMENT_INTERVAL = 150;
+
 #pragma anon_unions
 
 struct __SCD30Descriptor
