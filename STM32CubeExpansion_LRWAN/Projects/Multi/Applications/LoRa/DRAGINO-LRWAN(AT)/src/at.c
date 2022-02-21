@@ -65,7 +65,7 @@
 #include "weight.h"
 #include "SCD30.h"
 
-bool debug_flags=0;
+bool debug_flags=1;
 uint8_t symbtime1_value=0;  //RX1windowtimeout 
 uint8_t flag1=0;
 

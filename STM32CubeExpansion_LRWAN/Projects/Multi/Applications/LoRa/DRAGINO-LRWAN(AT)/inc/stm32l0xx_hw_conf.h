@@ -228,6 +228,12 @@ Maintainer: Miguel Luis and Gregory Cristian
 #define Oil_LEVEL_PIN             GPIO_PIN_0 
 #define ADC_Channel_Oil           ADC_CHANNEL_0
 
+/* ---------------------------  SCD30 POWER ENABLE definition -------------------------------*/
+#define SCD30_CLK_ENABLE()   __HAL_RCC_GPIOB_CLK_ENABLE()
+#define SCD30_POWER_EN_PORT          GPIOB	 
+#define SCD30_POWER_EN_PIN           GPIO_PIN_4
+
+
 /* ---------------------------  GPIO EXTI definition -------------------------------*/
 #define GPIO_EXTI_CLK_ENABLE()   __HAL_RCC_GPIOB_CLK_ENABLE()
 #define GPIO_EXTI_PORT          GPIOB	 

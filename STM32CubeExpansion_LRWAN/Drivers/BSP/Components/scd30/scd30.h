@@ -112,6 +112,7 @@ float SCD30_getHumidity(void);
 
 
 extern uint16_t SCD30_MEASUREMENT_INTERVAL;
+extern uint16_t SCD30_measurement_time;
 
 /* USER CODE END Private defines */
 

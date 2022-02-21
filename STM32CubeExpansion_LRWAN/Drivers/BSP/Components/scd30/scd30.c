@@ -44,7 +44,8 @@ extern bool debug_flags;
 #define I2C_TIMING    0x10A13E56 /* 100 kHz with analog Filter ON, Rise Time 400ns, Fall Time 100ns */ 
 //#define I2C_TIMING      0x00B1112E /* 400 kHz with analog Filter ON, Rise Time 250ns, Fall Time 100ns */
 
-uint16_t SCD30_MEASUREMENT_INTERVAL = 150;
+uint16_t SCD30_MEASUREMENT_INTERVAL = 2;
+uint16_t SCD30_measurement_time = 30000;
 
 #pragma anon_unions
 
@@ -200,6 +201,16 @@ void SCD30_init(void){
   /* Infinite loop */
  
   
+	GPIO_InitTypeDef GPIO_InitStruct={0};
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	GPIO_InitStruct.Pin = SCD30_POWER_EN_PIN;
+  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull  = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SCD30_POWER_EN_PORT, &GPIO_InitStruct);
+	
+	// HAL_GPIO_WritePin(SCD30_POWER_EN_PORT, SCD30_POWER_EN_PIN, GPIO_PIN_RESET);  
+  
 }
 
 
@@ -210,6 +221,20 @@ SCD30ErrCodeType SCD30_checkCrc2b(uint16_t seed, uint8_t crcIn)
   return SCDnoERROR;
 }
 
+
+/**
+  * @brief Starts continuous measurement of the SCD30 to measure CO2 concentration, humidity and temperature. 
+           Measurement data which is not read from the sensor will be overwritten. Continuous measurement status
+           is saved in non-volatile memory. When the sensor is powered down while continuous measurement mode is 
+           active SCD30 will measure continuously after repowering without sending the measurement command.
+           The CO2 measurement value can be compensated for ambient pressure by feeding the pressure value in mBar
+           to the sensor. Setting the ambient pressure will overwrite previous settings of altitude compensation.
+           Setting the argument to zero will deactivate the ambient pressure compensation 
+           (default ambient pressure = 1013.25 mBar). For setting a new ambient pressure when continuous measurement
+           is running the whole command has to be written to SCD30.
+  * @param baro Pressure in mBar.
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SCD30_startMeasurement(uint16_t baro)
 {
     uint8_t i2cBuffer[64];
@@ -221,9 +246,9 @@ SCD30ErrCodeType SCD30_startMeasurement(uint16_t baro)
     i2cBuffer[2] = baro >> 8;
     i2cBuffer[3] = baro & 255;
     i2cBuffer[4] = SCD30_calcCrc2b(baro);
-
+  
     respErrValue = HAL_I2C_Master_Transmit(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, 5, 150);
-
+  
     if(respErrValue == HAL_ERROR){
       return SCDnoAckERROR;
     }else if(respErrValue == HAL_TIMEOUT){
@@ -234,6 +259,11 @@ SCD30ErrCodeType SCD30_startMeasurement(uint16_t baro)
     
 }
 
+/**
+  * @brief Stopping the continuous measuring mode.
+  * @param  None
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SDC30_stopMeasurement(void)
 {
     uint8_t i2cBuffer[64];
@@ -243,7 +273,7 @@ SCD30ErrCodeType SDC30_stopMeasurement(void)
     i2cBuffer[1] = (0xFFu & CMD_STOP_CONT_MEASUREMENT); 
   
     respErrValue = HAL_I2C_Master_Transmit(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, 2, 150);
-  
+   
     if(respErrValue == HAL_ERROR){
       return SCDnoAckERROR;
     }else if(respErrValue == HAL_TIMEOUT){
@@ -254,6 +284,11 @@ SCD30ErrCodeType SDC30_stopMeasurement(void)
 }
 
 
+/**
+  * @brief Read out the last temperature, humidity and Co2 readings from the SCD30 sensor. .
+  * @param  None
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SCD30_readMeasurement(void)
 {
   uint8_t i2cBuffer[64];
@@ -283,6 +318,7 @@ SCD30ErrCodeType SCD30_readMeasurement(void)
   }else if(respErrValue == HAL_TIMEOUT){
     return SCDtimeoutERROR;
   }
+  
   
   uint16_t stat = (i2cBuffer[0] << 8) | i2cBuffer[1];
   SCD30descr.co2m = stat;
@@ -323,7 +359,13 @@ SCD30ErrCodeType SCD30_readMeasurement(void)
   
 }
 
-
+/**
+  * @brief Sets the measurement interval used by the SCD30 sensor to measure in continuous measurement mode (in Secs). 
+           Initial value is 2 s. The chosen measurement interval is saved in non-volatile memory and thus is not reset
+           to its initial value after power up.
+  * @param time_sec Time interval between two measurements
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SCD30_setMeasurementInterval(uint16_t time_sec)
 {
 
@@ -339,9 +381,9 @@ SCD30ErrCodeType SCD30_setMeasurementInterval(uint16_t time_sec)
     i2cBuffer[2] = (0xFFu & (time_sec >> 8));
     i2cBuffer[3] = (0xFFu & time_sec);
     i2cBuffer[4] = SCD30_calcCrc2b(time_sec);
-
+  
     respErrValue = HAL_I2C_Master_Transmit(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, 5, 150);
-
+  
     if(respErrValue == HAL_ERROR){
       return SCDnoAckERROR;
     }else if(respErrValue == HAL_TIMEOUT){
@@ -352,7 +394,15 @@ SCD30ErrCodeType SCD30_setMeasurementInterval(uint16_t time_sec)
 
 }
 
-
+/**
+  * @brief Set Temperatur Offset. The on-board RH/T sensor is influenced by thermal self-heating of SCD30 and other electrical components.
+           Design-in alters the thermal properties of SCD30 such that temperature and humidity offsets may occur when operating the sensor
+           in end-customer devices. Compensation of those effects is achievable by writing the temperature offset found in continuous operation
+           of the device into the sensor. Temperature offset value is saved in non-volatile memory. The last set value will be used for temperature
+           offset compensation after repowering.
+  * @param  temp Temperatur (in grad C)
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SCD30_setTemperatureOffs(uint16_t temp)
 {
     uint8_t i2cBuffer[64];
@@ -365,7 +415,7 @@ SCD30ErrCodeType SCD30_setTemperatureOffs(uint16_t temp)
     i2cBuffer[4] = SCD30_calcCrc2b(temp);
   
     respErrValue = HAL_I2C_Master_Transmit(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, 5, 150);
-
+  
     if(respErrValue == HAL_ERROR){
       return SCDnoAckERROR;
     }else if(respErrValue == HAL_TIMEOUT){
@@ -375,6 +425,12 @@ SCD30ErrCodeType SCD30_setTemperatureOffs(uint16_t temp)
     }
 }
 
+
+/**
+  * @brief Read the serial number of the SCD30 sensor.   
+  * @param None
+  * @retval SCD30 Error status code
+  */
 SCD30ErrCodeType SCD30_getSerialNumber(void)
 {
   uint8_t i2cBuffer[64];
@@ -401,7 +457,7 @@ SCD30ErrCodeType SCD30_getSerialNumber(void)
   }
   
   respErrValue = HAL_I2C_Master_Receive(&I2cHandle4, SCD30_BASE_ADDR, i2cBuffer, SCD30_SN_SIZE, 150);
-  
+    
   if(respErrValue == HAL_ERROR){
     return SCDnoAckERROR;
   }else if(respErrValue == HAL_TIMEOUT){

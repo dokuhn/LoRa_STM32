@@ -106,6 +106,8 @@ extern uint8_t mode;
 extern uint8_t inmode;
 extern uint16_t power_time;
 
+extern uint16_t SCD30_measurement_time;
+
 void BSP_sensor_Read( sensor_t *sensor_data)
 {
  	#if defined(LoRa_Sensor_Node)
@@ -125,15 +127,20 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 			 }				 
 		}
 	}
+  
+    HW_GetBatteryLevel( );	
+  
+#ifndef USE_SCD30
+    HAL_GPIO_WritePin(OIL_CONTROL_PORT,OIL_CONTROL_PIN,GPIO_PIN_RESET);	
+    
+    AD_code1=HW_AdcReadChannel( ADC_Channel_Oil );  //PA0
 	
-	HAL_GPIO_WritePin(OIL_CONTROL_PORT,OIL_CONTROL_PIN,GPIO_PIN_RESET);	
-	HW_GetBatteryLevel( );	
-	AD_code1=HW_AdcReadChannel( ADC_Channel_Oil );  //PA0
-	
-	HAL_GPIO_WritePin(OIL_CONTROL_PORT,OIL_CONTROL_PIN,GPIO_PIN_SET);
-	
-	sensor_data->oil=AD_code1*batteryLevel_mV/4095;
-	
+    HAL_GPIO_WritePin(OIL_CONTROL_PORT,OIL_CONTROL_PIN,GPIO_PIN_SET);
+	  
+    sensor_data->oil=AD_code1*batteryLevel_mV/4095;
+#endif
+  
+  
 	sensor_data->in1=HAL_GPIO_ReadPin(GPIO_INPUT_PORT,GPIO_INPUT_PIN1);
 
 	sensor_data->temp1=DS18B20_GetTemp_SkipRom(1);
@@ -206,12 +213,48 @@ void BSP_sensor_Read( sensor_t *sensor_data)
 		// sor_data->temp2=DS18B20_GetTemp_SkipRom(2);
 		// sensor_data->temp3=DS18B20_GetTemp_SkipRom(3);
 
+      PPRINTF("\r\n");		
+      PPRINTF("SDC30 start measuring\r\n") ;
+      
+     
+      /*
+     
+      HAL_GPIO_WritePin(SCD30_POWER_EN_PORT, SCD30_POWER_EN_PIN, GPIO_PIN_RESET);
+      Delay(10);
+     
+      SCD30_setMeasurementInterval(SCD30_MEASUREMENT_INTERVAL);
+     
+      SCD30_startMeasurement(0);
+      */
+
+      HAL_GPIO_WritePin(SCD30_POWER_EN_PORT, SCD30_POWER_EN_PIN, GPIO_PIN_RESET);
+     
+      IWDG_Refresh();	
+      DelayMs(500);
+      if(SCD30_measurement_time!=0)
+      {
+        for(int i=0;i<=(int)(SCD30_measurement_time/100);i++)
+        {
+           DelayMs(100);
+           if((i%99==0)&&(i!=0))
+           {
+              IWDG_Refresh();		 
+           }				 
+        }
+      }
      
     	SCD30_readMeasurement();
      
     	sensor_data->temp_scd30=SCD30_getTemperatur();
     	sensor_data->co2_scd30=SCD30_getCO2();
     	sensor_data->hum_scd30=SCD30_getHumidity();
+     
+      DelayMs(500);
+      HAL_GPIO_WritePin(SCD30_POWER_EN_PORT, SCD30_POWER_EN_PIN, GPIO_PIN_SET);
+     
+      PPRINTF("\r\n");		
+      PPRINTF("SDC30 stop measuring\r\n") ;
+   
      
 	 }	
 	 
@@ -411,12 +454,15 @@ void  BSP_sensor_Init( void  )
     
     SCD30_init();
     
+    HAL_GPIO_WritePin(SCD30_POWER_EN_PORT, SCD30_POWER_EN_PIN, GPIO_PIN_RESET);
+    Delay(10);
+        
     SCD30_setMeasurementInterval(SCD30_MEASUREMENT_INTERVAL);
     
     SCD30_startMeasurement(0);
+       
     
-
-    
+   
     PPRINTF("  Use Sensor is SCD30\n\r");
     
     #endif    
@@ -450,7 +496,10 @@ void  BSP_sensor_Init( void  )
 	}
 	
 	 GPIO_INPUT_IoInit();
+  
+   #ifndef USE_SCD30
 	 BSP_oil_float_Init();
+   #endif
 	
 	#endif
 }
